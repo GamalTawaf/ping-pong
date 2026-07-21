@@ -1,0 +1,4 @@
+# miniquad's browser functions (console_log, init_webgl, ...) are supplied at
+# runtime by mq_js_bundle.js; tell the linker to emit them as wasm imports.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--allow-undefined"]
