@@ -24,20 +24,35 @@ pub struct Paddle {
     pub y: f32, // top edge
 }
 
-impl Ball {
-    pub fn serve(direction: f32) -> Ball {
-        Ball {
-            x: COURT_W / 2.0,
-            y: COURT_H / 2.0,
-            vx: BALL_SPEED * direction.signum(),
-            vy: BALL_SPEED * 0.5,
-        }
-    }
-}
-
 impl Paddle {
     pub fn new(x: f32) -> Paddle {
         Paddle { x, y: (COURT_H - PADDLE_H) / 2.0 }
+    }
+}
+
+/// Which paddle is serving.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Side {
+    Left,
+    Right,
+}
+
+/// Ball resting against the serving paddle. `launch` false holds it there
+/// (vx=vy=0) tracking the paddle each frame; true fires it toward the court.
+pub fn serve_from(paddle: Paddle, side: Side, launch: bool) -> Ball {
+    let dir = match side {
+        Side::Left => 1.0,
+        Side::Right => -1.0,
+    };
+    let x = match side {
+        Side::Left => paddle.x + PADDLE_W + BALL_R,
+        Side::Right => paddle.x - BALL_R,
+    };
+    Ball {
+        x,
+        y: paddle.y + PADDLE_H / 2.0,
+        vx: if launch { BALL_SPEED * dir } else { 0.0 },
+        vy: if launch { BALL_SPEED * 0.5 } else { 0.0 },
     }
 }
 
@@ -115,6 +130,19 @@ pub fn step_ball(ball: Ball, left: Paddle, right: Option<Paddle>, dt: f32) -> (B
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn serve_from_holds_until_launched() {
+        let p = Paddle::new(20.0);
+        let held = serve_from(p, Side::Left, false);
+        assert_eq!((held.vx, held.vy), (0.0, 0.0));
+
+        let launched = serve_from(p, Side::Left, true);
+        assert!(launched.vx > 0.0, "left serve should launch rightward");
+
+        let launched_right = serve_from(Paddle::new(776.0), Side::Right, true);
+        assert!(launched_right.vx < 0.0, "right serve should launch leftward");
+    }
 
     #[test]
     fn ball_bounces_off_top_wall() {
