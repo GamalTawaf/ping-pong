@@ -21,6 +21,8 @@ In vs-AI and solo modes (only one human paddle in play), either key layout works
 
 `1`/`2`/`3` to pick a mode from the menu, `Space` to return to the menu from the game-over screen.
 
+On touch screens: tap a menu option to start, hold a finger where you want your paddle to go (in two-player, each player owns their half of the screen), and tap to leave the game-over screen. Works in both orientations — in portrait the court rotates so your green paddle is at the bottom and the AI's red paddle at the top. Paddles are color-coded, with a legend under the score (green YOU vs red AI, or green P1 vs orange P2). Exit and Pause/Resume buttons sit top-left during play; `Esc` also toggles pause.
+
 ## Running natively
 
 ```sh
