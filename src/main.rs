@@ -319,7 +319,7 @@ fn tapped_line(count: usize) -> Option<usize> {
     (0..count).find(|&i| (my - line_y(count, i)).abs() < line_spacing(count) / 2.0)
 }
 
-#[macroquad::main("Bing Pong")]
+#[macroquad::main("Ping Pong")]
 async fn main() {
     let mut screen = Screen::Menu;
     let mut best = BestScores::load();
@@ -331,7 +331,7 @@ async fn main() {
         screen = match screen {
             Screen::Menu => {
                 let lines = [
-                    "BING PONG",
+                    "PING PONG",
                     "",
                     "1 - Play vs AI",
                     "2 - Two players (W/S vs Up/Down)",
