@@ -2,6 +2,8 @@
 
 Pong, written in Rust with [macroquad](https://macroquad.rs). Runs natively or in the browser via WebAssembly.
 
+![Ping Pong menu](docs/screenshot.jpg)
+
 ## Modes
 
 - **1 — Play vs AI**: you (left paddle) against a computer opponent.
