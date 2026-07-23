@@ -5,7 +5,7 @@ pub const COURT_H: f32 = 600.0;
 pub const PADDLE_W: f32 = 14.0;
 pub const PADDLE_H: f32 = 100.0;
 pub const BALL_R: f32 = 10.0;
-pub const PADDLE_SPEED: f32 = 420.0;
+pub const PADDLE_SPEED: f32 = 600.0;
 pub const AI_SPEED: f32 = 300.0;
 pub const BALL_SPEED: f32 = 360.0;
 pub const SPEEDUP_ON_HIT: f32 = 1.04;
@@ -68,6 +68,14 @@ pub enum BallEvent {
 /// Move a paddle by `dir` (-1.0 up, 1.0 down, 0.0 hold), clamped to the court.
 pub fn move_paddle(p: Paddle, dir: f32, speed: f32, dt: f32) -> Paddle {
     let y = (p.y + dir * speed * dt).clamp(0.0, COURT_H - PADDLE_H);
+    Paddle { y, ..p }
+}
+
+/// Snap a paddle so its center sits at `target_center_y`, clamped to the court.
+/// Used for touch/mouse drag, which should track the pointer 1:1 instead of
+/// chasing it at a capped speed.
+pub fn set_paddle_center(p: Paddle, target_center_y: f32) -> Paddle {
+    let y = (target_center_y - PADDLE_H / 2.0).clamp(0.0, COURT_H - PADDLE_H);
     Paddle { y, ..p }
 }
 

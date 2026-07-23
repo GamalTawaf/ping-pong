@@ -55,11 +55,13 @@ fn key_dir(up: KeyCode, down: KeyCode) -> f32 {
     }
 }
 
-/// Per-frame touch steering: -1/0/1 for each paddle. Any touch drives the
-/// left paddle, except in two-player where the court splits at the middle
-/// (left/right halves in landscape, bottom/top halves in portrait).
-fn touch_dirs(p: &Play) -> (f32, f32) {
-    let mut dirs = (0.0, 0.0);
+/// Per-frame touch steering: target court-space center y for each paddle,
+/// or None if untouched. Any touch drives the left paddle, except in
+/// two-player where the court splits at the middle (left/right halves in
+/// landscape, bottom/top halves in portrait). Drag tracks the pointer 1:1
+/// (see `set_paddle_center`) rather than chasing it at a capped speed.
+fn touch_targets(p: &Play) -> (Option<f32>, Option<f32>) {
+    let mut targets = (None, None);
     // a held left mouse button steers like a finger, so desktop gets drag control too
     let mouse = is_mouse_button_down(MouseButton::Left)
         .then(|| mouse_position())
@@ -72,39 +74,50 @@ fn touch_dirs(p: &Play) -> (f32, f32) {
     {
         let (cx, cy) = to_court(pos.x, pos.y);
         let drives_left = p.mode != Mode::TwoPlayer || cx < COURT_W / 2.0;
-        let paddle = if drives_left { p.left } else { p.right };
-        let diff = cy - (paddle.y + PADDLE_H / 2.0);
-        // ponytail: paddle chases the finger; dead zone stops jitter once caught up
-        let dir = if diff.abs() < 20.0 { 0.0 } else { diff.signum() };
         if drives_left {
-            dirs.0 = dir;
+            targets.0 = Some(cy);
         } else {
-            dirs.1 = dir;
+            targets.1 = Some(cy);
         }
     }
-    dirs
+    targets
 }
 
 /// Advance one frame; returns the next screen.
 fn update_play(mut p: Play, dt: f32, best: &mut BestScores) -> Screen {
-    let (touch_left, touch_right) = touch_dirs(&p);
-    let left_dir = match p.mode {
-        // one human plays the left paddle alone, so accept either key layout
+    let (touch_left, touch_right) = touch_targets(&p);
+
+    // one human plays the left paddle alone, so accept either key layout
+    let left_key_dir = match p.mode {
         Mode::VsAi | Mode::Solo => {
-            (key_dir(KeyCode::W, KeyCode::S) + key_dir(KeyCode::Up, KeyCode::Down) + touch_left).clamp(-1.0, 1.0)
+            (key_dir(KeyCode::W, KeyCode::S) + key_dir(KeyCode::Up, KeyCode::Down)).clamp(-1.0, 1.0)
         }
-        Mode::TwoPlayer => (key_dir(KeyCode::W, KeyCode::S) + touch_left).clamp(-1.0, 1.0),
+        Mode::TwoPlayer => key_dir(KeyCode::W, KeyCode::S),
     };
-    p.left = move_paddle(p.left, left_dir, PADDLE_SPEED, dt);
+    let left_dir = match touch_left {
+        // drag tracks the pointer 1:1; report direction of travel for the serve check below
+        Some(target) => (target - (p.left.y + PADDLE_H / 2.0)).signum(),
+        None => left_key_dir,
+    };
+    p.left = match touch_left {
+        Some(target) => set_paddle_center(p.left, target),
+        None => move_paddle(p.left, left_key_dir, PADDLE_SPEED, dt),
+    };
 
     let right_dir = match p.mode {
         Mode::VsAi => ai_dir(p.right, p.ball),
-        Mode::TwoPlayer => (key_dir(KeyCode::Up, KeyCode::Down) + touch_right).clamp(-1.0, 1.0),
+        Mode::TwoPlayer => match touch_right {
+            Some(target) => (target - (p.right.y + PADDLE_H / 2.0)).signum(),
+            None => key_dir(KeyCode::Up, KeyCode::Down),
+        },
         Mode::Solo => 0.0,
     };
     if p.mode != Mode::Solo {
-        let speed = if p.mode == Mode::VsAi { AI_SPEED } else { PADDLE_SPEED };
-        p.right = move_paddle(p.right, right_dir, speed, dt);
+        p.right = match (p.mode, touch_right) {
+            (Mode::TwoPlayer, Some(target)) => set_paddle_center(p.right, target),
+            (Mode::VsAi, _) => move_paddle(p.right, right_dir, AI_SPEED, dt),
+            _ => move_paddle(p.right, right_dir, PADDLE_SPEED, dt),
+        };
     }
 
     // Ball rests against the serving paddle until that side moves.
