@@ -1,5 +1,9 @@
 [package]
 name = "ping-pong"
+description = "Pong written in Rust with the macroquad engine, compiled to WebAssembly."
+authors = ["Gamal Tawaf"]
+license = "MIT"
+repository = "https://github.com/GamalTawaf/ping-pong"
 version = "0.1.0"
 edition = "2024"
 
